@@ -46,7 +46,6 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGN_ENTITLEMENTS="" \
-            SWIFT_OPTIMIZATION_LEVEL=-Onone \
             build 2>&1 | tee build.log | grep -E "(error|warning:|BUILD|Compiling|Linking)" | tail -n 120
 
       - name: Package IPA
@@ -57,6 +56,8 @@ jobs:
           test -d "$APP"
           rm -rf out && mkdir -p out/Payload
           cp -R "$APP" out/Payload/
+          if ls out/Payload/LiDARStudio.app/*.debug.dylib >/dev/null 2>&1; then echo "FATAL: debug dylib present"; exit 1; fi
+          if ls out/Payload/LiDARStudio.app/__preview.dylib >/dev/null 2>&1; then echo "FATAL: preview dylib present"; exit 1; fi
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" out/Payload/LiDARStudio.app/Info.plist
           cd out && zip -qry ../LiDARStudio.ipa Payload && cd ..
           ls -lh LiDARStudio.ipa
