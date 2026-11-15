@@ -11,18 +11,7 @@ final class PhotogrammetryRunner: ObservableObject {
 
     private var session: PhotogrammetrySession?
 
-    enum Detail: String, CaseIterable {
-        case preview, medium, full
-        var title: String {
-            switch self {
-            case .preview: return "预览"
-            case .medium: return "中"
-            case .full: return "全精度"
-            }
-        }
-    }
-
-    func run(imagesDirectory: URL, outputURL: URL, detail: Detail) {
+    func run(imagesDirectory: URL, outputURL: URL) {
         guard !isRunning else { return }
         isRunning = true
         progress = 0
@@ -39,7 +28,7 @@ final class PhotogrammetryRunner: ObservableObject {
                 let session = try PhotogrammetrySession(input: imagesDirectory, configuration: config)
                 await MainActor.run { self.session = session }
                 try session.process(requests: [
-                    .modelFile(url: outputURL, detail: detail.requestDetail)
+                    .modelFile(url: outputURL, detail: .reduced)
                 ])
 
                 for try await output in session.outputs {
@@ -89,15 +78,5 @@ final class PhotogrammetryRunner: ObservableObject {
     func cancel() {
         session?.cancel()
         isRunning = false
-    }
-}
-
-private extension PhotogrammetryRunner.Detail {
-    var requestDetail: PhotogrammetrySession.Request.Detail {
-        switch self {
-        case .preview: return .preview
-        case .medium: return .medium
-        case .full: return .full
-        }
     }
 }
