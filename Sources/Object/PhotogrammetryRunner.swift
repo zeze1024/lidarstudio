@@ -67,10 +67,10 @@ final class PhotogrammetryRunner: ObservableObject {
                             self.errorText = error.localizedDescription
                             self.isRunning = false
                         }
-                    case let .invalidSample(url, reason):
-                        print("invalid sample \(url.lastPathComponent): \(reason)")
-                    case let .skippedSample(url, reason):
-                        print("skipped \(url.lastPathComponent): \(reason)")
+                    case let .invalidSample(id, reason):
+                        print("invalid sample \(id): \(reason)")
+                    case let .skippedSample(id):
+                        print("skipped sample \(id)")
                     default:
                         break
                     }
