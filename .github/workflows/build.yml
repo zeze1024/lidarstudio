@@ -1,0 +1,108 @@
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+          xcodebuild -showsdks | sed -n '1,40p'
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project LidarStudio.xcodeproj \
+            -scheme LidarStudio \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            SWIFT_OPTIMIZATION_LEVEL=-Onone \
+            build 2>&1 | tee build.log | grep -E "(error|warning:|BUILD|Compiling|Linking)" | tail -n 120
+
+      - name: Package IPA
+        if: success()
+        run: |
+          set -e
+          APP="build/Build/Products/Release-iphoneos/LiDARStudio.app"
+          test -d "$APP"
+          rm -rf out && mkdir -p out/Payload
+          cp -R "$APP" out/Payload/
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" out/Payload/LiDARStudio.app/Info.plist
+          cd out && zip -qry ../LiDARStudio.ipa Payload && cd ..
+          ls -lh LiDARStudio.ipa
+          unzip -l LiDARStudio.ipa | head -n 20
+
+      - name: Upload artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiDARStudio-ipa
+          path: LiDARStudio.ipa
+          retention-days: 30
+
+      - name: Publish release
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: LiDARStudio build ${{ github.run_number }}
+          body: |
+            免费签名版 IPA（未签名），用 Sideloadly / AltStore 侧载安装。
+            免费 Apple ID 签名有效 7 天，到期重新安装同一安装包即可。
+          files: LiDARStudio.ipa
+          make_latest: true
+
+      - name: Upload build log on failure
+        if: failure()
+        run: |
+          mkdir -p ci
+          echo "run: ${{ github.run_number }}" > ci/last-build.log
+          echo "status: FAILED" >> ci/last-build.log
+          if [ -f build.log ]; then tail -n 1200 build.log >> ci/last-build.log; else echo "(no build.log)" >> ci/last-build.log; fi
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add ci/last-build.log
+          git commit -m "ci: failed build log run ${{ github.run_number }}" || true
+          git push || true
+
+      - name: Record success marker
+        if: success()
+        run: |
+          mkdir -p ci
+          echo "run: ${{ github.run_number }}" > ci/last-build.log
+          echo "status: OK" >> ci/last-build.log
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add ci/last-build.log
+          git commit -m "ci: success run ${{ github.run_number }}" || true
+          git push || true
