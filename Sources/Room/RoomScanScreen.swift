@@ -5,7 +5,6 @@ import RoomPlan
 // MARK: - RoomPlan 控制器
 
 class RoomScanController: UIViewController, RoomCaptureViewDelegate {
-    private let captureSession = RoomCaptureSession()
     private let captureView = RoomCaptureView(frame: .zero)
 
     var onFinish: ((CapturedRoom) -> Void)?
@@ -22,7 +21,6 @@ class RoomScanController: UIViewController, RoomCaptureViewDelegate {
             captureView.topAnchor.constraint(equalTo: view.topAnchor),
             captureView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        captureView.captureSession = captureSession
         captureView.delegate = self
         captureView.isModelEnabled = true
     }
@@ -30,11 +28,11 @@ class RoomScanController: UIViewController, RoomCaptureViewDelegate {
     func startScanning() {
         var config = RoomCaptureSession.Configuration()
         config.isCoachingEnabled = true
-        captureSession.run(configuration: config)
+        captureView.captureSession.run(configuration: config)
     }
 
     func stopScanning() {
-        captureSession.stop()
+        captureView.captureSession.stop()
     }
 
     // MARK: RoomCaptureViewDelegate
@@ -83,10 +81,13 @@ enum RoomReportBuilder {
         var heightSum: Float = 0
         for wall in room.walls {
             let d = wall.dimensions
-            let width = CGFloat(max(d.x, d.y))
-            let height = CGFloat(min(d.x, d.y))
-            perimeter += Float(width)
-            if height > 0.5 { wallArea += Float(width * height); heightSum += Float(height) }
+            let width = max(d.x, d.y)
+            let height = min(d.x, d.y)
+            perimeter += width
+            if height > 0.5 {
+                wallArea += width * height
+                heightSum += height
+            }
         }
         let avgHeight = room.walls.isEmpty ? 0 : heightSum / Float(room.walls.count)
 
@@ -107,7 +108,8 @@ enum RoomReportBuilder {
         if !room.objects.isEmpty {
             var byCategory: [String: Int] = [:]
             for object in room.objects {
-                byCategory[object.category.rawValue, default: 0] += 1
+                let name = categoryName(object)
+                byCategory[name, default: 0] += 1
             }
             let detail = byCategory
                 .sorted { $0.value > $1.value }
@@ -119,7 +121,7 @@ enum RoomReportBuilder {
         var fine: [String] = []
         for object in room.objects.prefix(12) {
             let d = object.dimensions
-            fine.append("\(object.category.rawValue) 约 \(fmt(Float(d.x) * 100, 0))×\(fmt(Float(d.y) * 100, 0))×\(fmt(Float(d.z) * 100, 0)) cm")
+            fine.append("\(categoryName(object)) 约 \(fmt(d.x * 100, 0))×\(fmt(d.y * 100, 0))×\(fmt(d.z * 100, 0)) cm")
         }
 
         report.lines = out
@@ -130,9 +132,22 @@ enum RoomReportBuilder {
         if !fine.isEmpty {
             text += "\n\n物件尺寸（激光雷达实测，cm）\n" + fine.joined(separator: "\n")
         }
-        text += "\n\n数据来源：Apple RoomPlan（iPhone 激光雷达 parametric 重建）\n"
+        text += "\n\n数据来源：Apple RoomPlan（iPhone 激光雷达参数化重建）\n"
         report.text = text
         return report
+    }
+
+    static func categoryName(_ object: CapturedRoom.Object) -> String {
+        let raw = String(describing: object.category)
+        let table: [String: String] = [
+            "storage": "柜子", "bed": "床", "chair": "椅子", "sofa": "沙发",
+            "table": "桌子", "television": "电视", "oven": "烤箱",
+            "refrigerator": "冰箱", "stove": "灶台", "sink": "水槽",
+            "washerDryer": "洗衣机", "toilet": "马桶", "bathtub": "浴缸",
+            "dishwasher": "洗碗机", "fireplace": "壁炉",
+            "stairs": "楼梯", "other": "其他"
+        ]
+        return table[raw] ?? raw
     }
 
     private static func fmt(_ value: Float, _ digits: Int) -> String {
@@ -311,10 +326,16 @@ struct RoomScanScreen: View {
         let (asset, folder) = store.makeFolder(for: .room, name: ScanNaming.stamp("空间"))
         let report = RoomReportBuilder.make(from: room)
         var modelName: String?
+        let url = folder.appendingPathComponent("room.usdz")
         do {
-            let usdz = try room.usdzData
-            let url = folder.appendingPathComponent("room.usdz")
-            try usdz.write(to: url, options: .atomic)
+            if FileManager.default.fileExists(atPath: url.path) {
+                try? FileManager.default.removeItem(at: url)
+            }
+            do {
+                try room.export(to: url, exportOptions: .parametric)
+            } catch {
+                try room.export(to: url, exportOptions: .mesh)
+            }
             modelName = "room.usdz"
         } catch {
             session.errorText = "USDZ 导出失败：\(error.localizedDescription)"
@@ -343,8 +364,6 @@ struct RoomScanScreen: View {
         return items
     }
 }
-
-// MARK: - 玻璃按钮
 
 struct GlassButtonStyle: ButtonStyle {
     var tint: Color = Color.white.opacity(0.14)
