@@ -1,4 +1,4 @@
-run: 6
+run: 7
 status: FAILED
 Command line invocation:
     /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild -project LidarStudio.xcodeproj -scheme LidarStudio -configuration Release -sdk iphoneos -destination generic/platform=iOS -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= CODE_SIGN_ENTITLEMENTS= SWIFT_OPTIMIZATION_LEVEL=-Onone build
@@ -37,15 +37,15 @@ ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/X
 
 ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
 
-Build description signature: b98ddd24d343e9df0a1e53483a28e17e
-Build description path: /Users/runner/work/lidarstudio/lidarstudio/build/Build/Intermediates.noindex/XCBuildData/b98ddd24d343e9df0a1e53483a28e17e.xcbuilddata
-CreateBuildDirectory /Users/runner/work/lidarstudio/lidarstudio/build/Build/Products
-    cd /Users/runner/work/lidarstudio/lidarstudio/LidarStudio.xcodeproj
-    builtin-create-build-directory /Users/runner/work/lidarstudio/lidarstudio/build/Build/Products
-
+Build description signature: 10ad4f6bc4f75d6b7ea9d76e8556ad63
+Build description path: /Users/runner/work/lidarstudio/lidarstudio/build/Build/Intermediates.noindex/XCBuildData/10ad4f6bc4f75d6b7ea9d76e8556ad63.xcbuilddata
 ClangStatCache /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk /Users/runner/work/lidarstudio/lidarstudio/build/SDKStatCaches.noindex/iphoneos18.5-22F76-a529daf784b3616c7c04a36aeb7f5c05.sdkstatcache
     cd /Users/runner/work/lidarstudio/lidarstudio/LidarStudio.xcodeproj
     /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.5.sdk -o /Users/runner/work/lidarstudio/lidarstudio/build/SDKStatCaches.noindex/iphoneos18.5-22F76-a529daf784b3616c7c04a36aeb7f5c05.sdkstatcache
+
+CreateBuildDirectory /Users/runner/work/lidarstudio/lidarstudio/build/Build/Products
+    cd /Users/runner/work/lidarstudio/lidarstudio/LidarStudio.xcodeproj
+    builtin-create-build-directory /Users/runner/work/lidarstudio/lidarstudio/build/Build/Products
 
 CreateBuildDirectory /Users/runner/work/lidarstudio/lidarstudio/build/Build/Intermediates.noindex
     cd /Users/runner/work/lidarstudio/lidarstudio/LidarStudio.xcodeproj
@@ -160,9 +160,6 @@ CompileSwift normal arm64 (in target 'LidarStudio' from project 'LidarStudio')
 /Users/runner/work/lidarstudio/lidarstudio/Sources/Object/PhotoCaptureService.swift:76:18: warning: 'isHighResolutionPhotoEnabled' was deprecated in iOS 16.0: Use maxPhotoDimensions instead.
         settings.isHighResolutionPhotoEnabled = true
                  ^
-/Users/runner/work/lidarstudio/lidarstudio/Sources/Object/PhotogrammetryRunner.swift:71:53: error: value of type 'Int' has no member 'lastPathComponent'
-                        print("invalid sample \(url.lastPathComponent): \(reason)")
-                                                ~~~ ^~~~~~~~~~~~~~~~~
 /Users/runner/work/lidarstudio/lidarstudio/Sources/Object/PhotogrammetryRunner.swift:98:32: error: type 'PhotogrammetrySession.Request.Detail' has no member 'preview'
         case .preview: return .preview
                               ~^~~~~~~
